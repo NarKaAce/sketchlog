@@ -42,6 +42,8 @@ class CapaForm extends TPage
         $btnClose->setLabel("Fechar");
         $btnClose->setImage('fas:times');
 
+        //teste
+
         $this->form->addHeaderWidget($btnClose);
 
         parent::add($this->form);
