@@ -1,6 +1,8 @@
 <?php
+require_once 'app/widget/form/SIconesCombo.php';
 
 use Adianti\Database\TTransaction;
+use Adianti\Widget\Form\SIconesCombo;
 use Adianti\Widget\Form\TLabel;
 
 class GeneroForm extends TPage
@@ -14,43 +16,41 @@ class GeneroForm extends TPage
         parent::__construct();
         parent::setTargetContainer('adianti_right_panel');
 
-        $this->form = new BootstrapFormBuilder;
-        $this->form->setFormTitle("Cadastro de Genero");
+        $this->form = new BootstrapFormBuilder(self::$formName);
+        if(empty($param['window']))
+        {
+            $this->form->setFormTitle("Cadastro de Gênero");
+        }
         $this->form->generateAria(); // automatic aria-label
 
         $id = new TEntry('id');
         $nome = new TEntry('nome');
-        $icone_id = new TCombo('icone_id');
-
-        TTransaction::open(self::$database);
-
-        $icones = Icone::getIndexedArray('id', 'imagem');
-
-        TTransaction::close();
-
-        $icone_id->addItems($icones);
+        $icone_id = new SIconesCombo('icone_id');
 
         $id->setEditable(FALSE);
 
         $id->setSize("100%");
         $nome->setSize("100%");
-        $icone_id->setSize("100%");
+        $icone_id->setSize("32%");
 
         $row1 = $this->form->addFields([new TLabel('ID', null, '14px', null, "100%"), $id], [new TLabel('Nome', null, '14px', null, "100%"), $nome]);
         $row1->layout = ['col-sm-6','col-sm-6'];
         $row2 = $this->form->addFields([new TLabel('Icone', null, '14px', null, "100%"), $icone_id], []);
         $row2->layout = ['col-sm-6','col-sm-6'];
 
-        $this->form->addAction('Salvar', new TAction(array($this, 'onSave')), 'far:check-circle green');
+        $this->form->addAction('Salvar', new TAction(array($this, 'onSave'), $param), 'far:check-circle green');
 
-        $btnClose = new TButton('closeCurtain');
-        $btnClose->class = 'btn btn-sm btn-default';
-        $btnClose->style = 'margin-right:10px;';
-        $btnClose->onClick = "Template.closeRightPanel();";
-        $btnClose->setLabel("Fechar");
-        $btnClose->setImage('fas:times');
+        if(empty($param['window']))
+        {
+            $btnClose = new TButton('closeCurtain');
+            $btnClose->class = 'btn btn-sm btn-default';
+            $btnClose->style = 'margin-right:10px;';
+            $btnClose->onClick = "Template.closeRightPanel();";
+            $btnClose->setLabel("Fechar");
+            $btnClose->setImage('fas:times');
 
-        $this->form->addHeaderWidget($btnClose);
+            $this->form->addHeaderWidget($btnClose);
+        }
 
         parent::add($this->form);
     }
@@ -70,7 +70,17 @@ class GeneroForm extends TPage
             TTransaction::close();
 
             TToast::show('success', "Registro salvo", 'topRight', 'far:check-circle');
-            AdiantiCoreApplication::loadPage('GeneroList', 'onReload');
+            if (!empty($param['window'])) {
+                TScript::create("
+                    if (window.parent) {
+                        window.parent.adianti_set_field_value('form_JogoForm', 'genero_id', '{$obj->id}');
+                        window.parent.adianti_set_field_display_value('form_JogoForm', 'genero_id', '{$obj->nome}');
+                        window.parent.adianti_close_window();
+                    }
+                ");
+            } else {
+                AdiantiCoreApplication::loadPage('GeneroList', 'onReload');
+            }
         }catch (Exception $e){
             new TMessage('error', $e->getMessage()); // shows the exception error message
             $this->form->setData( $this->form->getData() ); // keep form data

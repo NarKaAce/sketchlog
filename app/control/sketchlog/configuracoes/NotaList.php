@@ -196,7 +196,7 @@ class NotaList extends TPage
 
         if (isset($data->valor) and ((is_scalar($data->valor) and $data->valor !== '') or (is_array($data->valor) and (!empty($data->valor))))) {
 
-            $filters[] = new TFilter('valor', '=', "{$data->valor");// create the filter
+            $filters[] = new TFilter('valor', '=', "{$data->valor}");// create the filter
         }
 
         // fill the form with data again

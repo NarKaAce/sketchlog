@@ -1,6 +1,5 @@
 <?php
 
-
 namespace Adianti\Widget\Form;
 
 use Adianti\Database\TTransaction;
@@ -22,7 +21,10 @@ class SIconesCombo extends TCombo
         $items = [];
         foreach ($icons as $key => $path)
         {
-            $items[$key] = "<img src='{$path}' style='width:16px; vertical-align:middle; margin-right:6px;'>";
+            if($path !== 'imagem')
+            {
+                $items[$key] = "<img src='{$path}' style='width:100px; vertical-align:middle; margin-right:6px;'>";
+            }
         }
 
         $this->addItems($items);

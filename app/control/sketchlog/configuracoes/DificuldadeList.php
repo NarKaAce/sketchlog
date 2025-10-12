@@ -136,12 +136,6 @@ class DificuldadeList extends TPage
         $container->add($panel);
 
         parent::add($container);
-
-        if(empty($param['method']))
-        {
-            $this->clearFilters();
-        }
-
     }
 
     public function onDelete($param = null)

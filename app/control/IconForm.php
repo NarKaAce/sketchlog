@@ -12,6 +12,7 @@ class IconForm extends TPage
         $form = new BootstrapFormBuilder('form_icon');
 
         $icone = new SIconesCombo('icone_id');
+        $icone->setSize('10%');
 
         $form->addFields([new TLabel('Ícone')], [$icone]);
 

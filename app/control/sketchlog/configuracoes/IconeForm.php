@@ -59,24 +59,6 @@ class IconeForm extends TPage
             $obj = new Icone();
             $obj->fromArray((array) $data);
 
-            //Caminho
-            $targetPath = "app/images/icone/";
-
-            if (!empty($data->imagem)) {
-                $source_file = 'tmp/' . $data->imagem;
-
-                if (file_exists($source_file)) {
-                    $unique_name = uniqid() . '-' . $data->imagem;
-                    $target_file = $targetPath . $unique_name;
-
-                    // Move o arquivo
-                    rename($source_file, $target_file);
-
-                    // Salva o caminho no banco
-                    $obj->imagem = $target_file;
-                }
-            }
-
             $obj->store();
 
             TTransaction::close();

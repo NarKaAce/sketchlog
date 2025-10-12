@@ -10,5 +10,6 @@ class Tipo extends TRecord
     {
         parent::__construct($id);
         parent::addAttribute('nome');
+        parent::addAttribute('icone_id');
     }
 }

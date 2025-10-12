@@ -11,8 +11,11 @@ class DistribuidoraForm extends TPage
         parent::__construct();
         parent::setTargetContainer('adianti_right_panel');
 
-        $this->form = new BootstrapFormBuilder;
-        $this->form->setFormTitle("Cadastro de Distribuidora");
+        $this->form = new BootstrapFormBuilder(self::$formName);
+        if(empty($param['window']))
+        {
+            $this->form->setFormTitle("Cadastro de Distribuidora");
+        }
         $this->form->generateAria(); // automatic aria-label
 
         $id = new TEntry('id');
@@ -26,16 +29,19 @@ class DistribuidoraForm extends TPage
         $row1 = $this->form->addFields([new TLabel('ID', null, '14px', null, "100%"), $id], [new TLabel('Nome', null, '14px', null, "100%"), $nome]);
         $row1->layout = ['col-sm-6','col-sm-6'];
 
-        $this->form->addAction('Salvar', new TAction(array($this, 'onSave')), 'far:check-circle green');
+        $this->form->addAction('Salvar', new TAction(array($this, 'onSave'), $param), 'far:check-circle green');
 
-        $btnClose = new TButton('closeCurtain');
-        $btnClose->class = 'btn btn-sm btn-default';
-        $btnClose->style = 'margin-right:10px;';
-        $btnClose->onClick = "Template.closeRightPanel();";
-        $btnClose->setLabel("Fechar");
-        $btnClose->setImage('fas:times');
+        if(empty($param['window']))
+        {
+            $btnClose = new TButton('closeCurtain');
+            $btnClose->class = 'btn btn-sm btn-default';
+            $btnClose->style = 'margin-right:10px;';
+            $btnClose->onClick = "Template.closeRightPanel();";
+            $btnClose->setLabel("Fechar");
+            $btnClose->setImage('fas:times');
 
-        $this->form->addHeaderWidget($btnClose);
+            $this->form->addHeaderWidget($btnClose);
+        }
 
         parent::add($this->form);
     }
@@ -55,7 +61,17 @@ class DistribuidoraForm extends TPage
             TTransaction::close();
 
             TToast::show('success', "Registro salvo", 'topRight', 'far:check-circle');
-            AdiantiCoreApplication::loadPage('DistribuidoraList', 'onReload');
+            if (!empty($param['window'])) {
+                TScript::create("
+                    if (window.parent) {
+                        window.parent.adianti_set_field_value('form_JogoForm', 'distribuidora_id', '{$obj->id}');
+                        window.parent.adianti_set_field_display_value('form_JogoForm', 'distribuidora_id', '{$obj->nome}');
+                        window.parent.adianti_close_window();
+                    }
+                ");
+            } else {
+                AdiantiCoreApplication::loadPage('DistribuidoraList', 'onReload');
+            }
         }catch (Exception $e){
             new TMessage('error', $e->getMessage()); // shows the exception error message
             $this->form->setData( $this->form->getData() ); // keep form data

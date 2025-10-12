@@ -12,4 +12,27 @@ class Icone extends TRecord
         parent::addAttribute('nome');
         parent::addAttribute('imagem');
     }
+
+    public function onBeforeSave($object)
+    {
+        $data = $object;
+        $pasta = strtolower(__CLASS__);
+        //Caminho
+        $targetPath = "app/images/$pasta/";
+
+        if (!empty($data->imagem)) {
+            $source_file = 'tmp/' . $data->imagem;
+
+            if (file_exists($source_file)) {
+                $unique_name = uniqid() . '-' . $data->imagem;
+                $target_file = $targetPath . $unique_name;
+
+                // Move o arquivo
+                rename($source_file, $target_file);
+
+                // Salva o caminho no banco
+                $object->imagem = $target_file;
+            }
+        }
+    }
 }

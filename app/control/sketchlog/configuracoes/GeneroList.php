@@ -63,15 +63,17 @@ class GeneroList extends TPage
         $this->datagrid->setHeight(250);
 
         $column_nome = new TDataGridColumn('nome', "Nome", 'left');
-        $column_icone = new TDataGridColumn('icone', "Icone", 'left');
-
-        $column_nome->setTransformer(function ($value, $object, $row, $cell = null, $last_row = null) {
-            return $value;
-        });
+        $column_icone = new TDataGridColumn('icone_id', "Icone", 'left');
 
         $column_icone->setTransformer(function ($value, $object, $row, $cell = null, $last_row = null) {
-            return $value;
-            //return "<i class='{$value} fa-fw'></i>";
+            if($value)
+            {
+                $src = Icone::where('id', '=', $value)->getIndexedArray('id', 'imagem');
+                return '<img src="' . $src[$value] . '" width="150" height="150">';
+            }else{
+                return "Sem imagem";
+            }
+
         });
 
         $this->datagrid->addColumn($column_nome);
