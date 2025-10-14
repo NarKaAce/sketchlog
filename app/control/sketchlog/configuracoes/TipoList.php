@@ -205,7 +205,7 @@ class TipoList extends TPage
 
         if (isset($data->genero_id) and ((is_scalar($data->genero_id) and $data->genero_id !== '') or (is_array($data->genero_id) and (!empty($data->genero_id))))) {
 
-            $filters[] = new TFilter('genero_id', 'ilike', $data->genero_id);// create the filter
+            $filters[] = new TFilter('genero_id', '=', $data->genero_id);// create the filter
         }
 
         // fill the form with data again

@@ -15,17 +15,17 @@ class Tipo extends TRecord
         parent::addAttribute('genero_id');
     }
 
-    public function set_genero(Jogo $object)
+    public function set_genero(Genero $object)
     {
         $this->genero = $object;
-        $this->jogo_id = $object->id;
+        $this->genero_id = $object->id;
     }
 
     public function get_genero()
     {
         // carrega sob demanda
         if (empty($this->genero))
-            $this->genero = new Jogo($this->jogo_id);
+            $this->genero = new Genero($this->genero_id);
         return $this->genero;
     }
 }
