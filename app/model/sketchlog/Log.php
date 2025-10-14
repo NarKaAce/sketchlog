@@ -4,19 +4,17 @@ class Log extends TRecord
 {
     const TABLENAME  = 'log';
     const PRIMARYKEY = 'id';
-    const IDPOLICY   = 'serial'; // {max, serial}
+    const IDPOLICY   = 'serial';
 
-    private $sketch;
     private $jogo;
     private $nota;
     private $dificuldade;
     private $console;
+    private $sketch;
 
-
-    public function __construct ($id = null)
+    public function __construct($id = NULL)
     {
         parent::__construct($id);
-        parent::addAttribute('nome');
         parent::addAttribute('sketch_id');
         parent::addAttribute('jogo_id');
         parent::addAttribute('dt_hr_ini');
@@ -28,59 +26,78 @@ class Log extends TRecord
         parent::addAttribute('log_zerado');
         parent::addAttribute('log_platinado');
         parent::addAttribute('console_id');
-        parent::addAttribute('conquista');
+        parent::addAttribute('conquistas_feitas');
+        parent::addAttribute('conquistas_totais');
         parent::addAttribute('log_goty');
         parent::addAttribute('usuario_id');
         parent::addAttribute('review');
     }
 
-    public function getSketch ()
+    // --- Relações (padrão Adianti) ---
+
+    public function set_jogo(Jogo $object)
     {
-        return $this->sketch;
+        $this->jogo = $object;
+        $this->jogo_id = $object->id;
     }
 
-    public function setSketch ($sketch)
+    public function get_jogo()
     {
-        $this->sketch = $sketch;
-    }
-
-    public function getJogo ()
-    {
+        // carrega sob demanda
+        if (empty($this->jogo))
+            $this->jogo = new Jogo($this->jogo_id);
         return $this->jogo;
     }
 
-    public function setJogo ($jogo)
+    public function set_nota(Nota $object)
     {
-        $this->jogo = $jogo;
+        $this->nota = $object;
+        $this->nota_id = $object->id;
     }
 
-    public function getNota()
+    public function get_nota()
     {
+        if (empty($this->nota))
+            $this->nota = new Nota($this->nota_id);
         return $this->nota;
     }
 
-    public function setNota($nota)
+    public function set_dificuldade(Dificuldade $object)
     {
-        $this->nota = $nota;
+        $this->dificuldade = $object;
+        $this->dificuldade_id = $object->id;
     }
 
-    public function getDificuldade ()
+    public function get_dificuldade()
     {
+        if (empty($this->dificuldade))
+            $this->dificuldade = new Dificuldade($this->dificuldade_id);
         return $this->dificuldade;
     }
 
-    public function setDificuldade ($dificuldade)
+    public function set_console(Console $object)
     {
-        $this->dificuldade = $dificuldade;
+        $this->console = $object;
+        $this->console_id = $object->id;
     }
 
-    public function getConsole ()
+    public function get_console()
     {
+        if (empty($this->console))
+            $this->console = new Console($this->console_id);
         return $this->console;
     }
 
-    public function setConsole ($console)
+    public function set_sketch(Sketch $object)
     {
-        $this->console = $console;
+        $this->sketch = $object;
+        $this->sketch_id = $object->id;
+    }
+
+    public function get_sketch()
+    {
+        if (empty($this->sketch))
+            $this->sketch = new Sketch($this->sketch_id);
+        return $this->sketch;
     }
 }

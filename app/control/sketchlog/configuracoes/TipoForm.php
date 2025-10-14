@@ -26,6 +26,10 @@ class TipoForm extends TPage
         $id = new TEntry('id');
         $nome = new TEntry('nome');
         $icone_id = new SIconesCombo('icone_id');
+        $genero_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('genero_id', 'sketchlog', 'Genero', 'id', 'nome');
+
+        $genero_id->setSize('100%');
+        $genero_id->setMinLength(0);
 
         $id->setEditable(FALSE);
 
@@ -35,7 +39,7 @@ class TipoForm extends TPage
 
         $row1 = $this->form->addFields([new TLabel('ID', null, '14px', null, "100%"), $id], [new TLabel('Nome', null, '14px', null, "100%"), $nome]);
         $row1->layout = ['col-sm-6','col-sm-6'];
-        $row2 = $this->form->addFields([new TLabel('Icone', null, '14px', null, "100%"), $icone_id], []);
+        $row2 = $this->form->addFields([new TLabel('Genero', null, '14px', null, "100%"), $genero_id], [new TLabel('Icone', null, '14px', null, "100%"), $icone_id]);
         $row2->layout = ['col-sm-6','col-sm-6'];
 
         $this->form->addAction('Salvar', new TAction(array($this, 'onSave'), $param), 'far:check-circle green');

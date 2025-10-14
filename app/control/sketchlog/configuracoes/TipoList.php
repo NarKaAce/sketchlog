@@ -35,10 +35,13 @@ class TipoList extends TPage
         $this->limit = 20;
 
         $nome = new TEntry('nome');
+        $genero_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('genero_id', 'sketchlog', 'Genero', 'id', 'nome');
 
         $nome->setSize('100%');
+        $genero_id->setSize('100%');
+        $genero_id->setMinLength(0);
 
-        $row1 = $this->form->addFields([new TLabel("Nome:", null, '14px', null, '100%'), $nome], []);
+        $row1 = $this->form->addFields([new TLabel("Nome:", null, '14px', null, '100%'), $nome], [new \Adianti\Widget\Form\TLabel("Genero:", null, '14px', null, '100%'), $genero_id]);
         $row1->layout = ['col-sm-6', 'col-sm-6'];
 
         $btn_onsearch = $this->form->addAction("Buscar", new TAction([$this, 'onSearch']), 'fas:search #ffffff');
@@ -64,6 +67,7 @@ class TipoList extends TPage
 
         $column_nome = new TDataGridColumn('nome', "Nome", 'left');
         $column_icone = new TDataGridColumn('icone_id', "Icone", 'left');
+        $column_genero = new TDataGridColumn('genero->nome', "Genero", 'left');
 
         $column_icone->setTransformer(function ($value, $object, $row, $cell = null, $last_row = null) {
 
@@ -78,6 +82,7 @@ class TipoList extends TPage
         });
 
         $this->datagrid->addColumn($column_nome);
+        $this->datagrid->addColumn($column_genero);
         $this->datagrid->addColumn($column_icone);
 
         $action_onEdit = new TDataGridAction(array('TipoForm', 'onEdit'));
@@ -196,6 +201,11 @@ class TipoList extends TPage
         if (isset($data->nome) and ((is_scalar($data->nome) and $data->nome !== '') or (is_array($data->nome) and (!empty($data->nome))))) {
 
             $filters[] = new TFilter('nome', 'ilike', "%{$data->nome}%");// create the filter
+        }
+
+        if (isset($data->genero_id) and ((is_scalar($data->genero_id) and $data->genero_id !== '') or (is_array($data->genero_id) and (!empty($data->genero_id))))) {
+
+            $filters[] = new TFilter('genero_id', 'ilike', $data->genero_id);// create the filter
         }
 
         // fill the form with data again
