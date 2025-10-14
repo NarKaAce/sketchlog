@@ -13,7 +13,7 @@ class NotaForm extends TPage
         parent::__construct();
         parent::setTargetContainer('adianti_right_panel');
 
-        $this->form = new BootstrapFormBuilder;
+        $this->form = new BootstrapFormBuilder(self::$formName);
         if(empty($param['window']))
         {
             $this->form->setFormTitle("Cadastro de Nota");
@@ -36,7 +36,7 @@ class NotaForm extends TPage
         $row2 = $this->form->addFields([new TLabel('Descrição', null, '14px', null, "100%"), $descricao], []);
         $row2->layout = ['col-sm-6','col-sm-6'];
 
-        $this->form->addAction('Salvar', new TAction(array($this, 'onSave')), 'far:check-circle green');
+        $this->form->addAction('Salvar', new TAction(array($this, 'onSave'), $param), 'far:check-circle green');
 
         if(empty($param['window']))
         {

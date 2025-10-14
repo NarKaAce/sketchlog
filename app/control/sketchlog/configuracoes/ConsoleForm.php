@@ -11,7 +11,7 @@ class ConsoleForm extends TPage
         parent::__construct();
         parent::setTargetContainer('adianti_right_panel');
 
-        $this->form = new BootstrapFormBuilder;
+        $this->form = new BootstrapFormBuilder(self::$formName);
         if(empty($param['window']))
         {
             $this->form->setFormTitle("Cadastro de Console");
@@ -29,7 +29,7 @@ class ConsoleForm extends TPage
         $row1 = $this->form->addFields([new TLabel('ID', null, '14px', null, "100%"), $id], [new TLabel('Nome', null, '14px', null, "100%"), $nome]);
         $row1->layout = ['col-sm-6','col-sm-6'];
 
-        $this->form->addAction('Salvar', new TAction(array($this, 'onSave')), 'far:check-circle green');
+        $this->form->addAction('Salvar', new TAction(array($this, 'onSave'), $param), 'far:check-circle green');
 
         if(empty($param['window']))
         {

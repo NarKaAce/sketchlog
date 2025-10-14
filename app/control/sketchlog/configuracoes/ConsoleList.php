@@ -288,7 +288,7 @@ class ConsoleList extends TPage
             TTransaction::open(self::$database);
         }
 
-        $object = new Capa($id);
+        $object = new Console($id);
 
         $row = $list->datagrid->addItem($object);
         $row->id = "row_{$object->id}";

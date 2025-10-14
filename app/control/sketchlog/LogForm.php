@@ -23,8 +23,8 @@ class LogForm extends TPage
         $dt_hr_ini = new \Adianti\Widget\Form\TDateTime('dt_hr_ini');
         $dt_hr_fim = new \Adianti\Widget\Form\TDateTime('dt_hr_fim');
         $tempo = new \Adianti\Widget\Form\TEntry('tempo');
-        $nota_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('nota_id', 'sketchlog', 'Nota', 'id', 'descricao');
-        $dificuldade_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('dificuldade_id', 'sketchlog', 'Dificuldade', 'id', 'descricao');
+        $nota_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('nota_id', 'sketchlog', 'Nota', 'id', 'descricao', 'valor desc');
+        $dificuldade_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('dificuldade_id', 'sketchlog', 'Dificuldade', 'id', 'descricao', 'id desc');
         $log_replay = new \Adianti\Widget\Form\TRadioGroup('log_replay');
         $log_zerado = new \Adianti\Widget\Form\TRadioGroup('log_zerado');
         $log_platinado = new \Adianti\Widget\Form\TRadioGroup('log_platinado');
@@ -42,8 +42,14 @@ class LogForm extends TPage
         $button->title = _t('New');
         $nota_id->after($button);
 
+        $crit = new TCriteria;
+        $crit->setProperty('order', 'valor');
+
+        $nota_id->setProperty('criteria', $crit);
+
         $nota_id->setSize('calc(100% - 40px)');
         $nota_id->setMinLength(0);
+        $nota_id->setMask('{valor} - {descricao}');
 
         $button = new TActionLink('', new TAction(['DificuldadeFormWindow', 'onEdit']), 'green', null, null, 'fa:plus-circle');
         $button->class = 'btn btn-default inline-button';
@@ -52,6 +58,7 @@ class LogForm extends TPage
 
         $dificuldade_id->setSize('calc(100% - 40px)');
         $dificuldade_id->setMinLength(0);
+        $dificuldade_id->setMask('{valor} - {descricao}');
 
         $button = new TActionLink('', new TAction(['ConsoleFormWindow', 'onEdit']), 'green', null, null, 'fa:plus-circle');
         $button->class = 'btn btn-default inline-button';
