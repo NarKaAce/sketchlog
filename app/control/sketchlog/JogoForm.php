@@ -114,10 +114,14 @@ class JogoForm extends TPage
         {
             if (isset($param['key']))
             {
+
+                TScript::create("$('[name=tipo_id]').closest('.col-sm-6.fb-field-container').show();");
                 $key = $param['key'];  // get the parameter $key
                 TTransaction::open(self::$database); // open a transaction
 
-                $object = new Jogo($key); // instantiates the Active Recor
+                $object = new Jogo($key); // instantiates the Active Record
+
+                self::onChangeGenero(['genero_id' => $object->genero_id]);
 
                 $this->form->setData($object); // fill the form
 
@@ -157,6 +161,7 @@ class JogoForm extends TPage
                     $options[$tipo->id] = $tipo->nome;
                 }
             }
+
             TCombo::reload(self::$formName, 'tipo_id', $options, true);
         }else{
             TScript::create("$('[name=tipo_id]').closest('.col-sm-6.fb-field-container').hide();");

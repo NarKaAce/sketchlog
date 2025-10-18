@@ -40,10 +40,10 @@ class LogList extends TPage
         $dificuldade_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('dificuldade_id', 'sketchlog', 'Dificuldade', 'id', 'descricao');
         $console_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('console_id', 'sketchlog', 'Console', 'id', 'nome');
         $conquistas = new \Adianti\Widget\Form\TEntry('conquistas_feitas');
-        $log_replay = new \Adianti\Widget\Form\TRadioGroup('log_replay');
-        $log_zerado = new \Adianti\Widget\Form\TRadioGroup('log_zerado');
-        $log_platinado = new \Adianti\Widget\Form\TRadioGroup('log_platinado');
-        $log_goty = new \Adianti\Widget\Form\TRadioGroup('log_goty');
+        $log_replay = new \Adianti\Widget\Form\TCombo('log_replay');
+        $log_zerado = new \Adianti\Widget\Form\TCombo('log_zerado');
+        $log_platinado = new \Adianti\Widget\Form\TCombo('log_platinado');
+        $log_goty = new \Adianti\Widget\Form\TCombo('log_goty');
 
         $tempo->setMask('999');
 
@@ -61,10 +61,25 @@ class LogList extends TPage
 
         $conquistas->setMask('9!');
 
-        $log_replay->setBooleanMode();
-        $log_zerado->setBooleanMode();
-        $log_platinado->setBooleanMode();
-        $log_goty->setBooleanMode();
+        $log_replay->addItems([
+            true  => 'Sim',
+            false => 'Não'
+        ]);
+
+        $log_zerado->addItems([
+            true  => 'Sim',
+            false => 'Não'
+        ]);
+
+        $log_platinado->addItems([
+            true  => 'Sim',
+            false => 'Não'
+        ]);
+
+        $log_goty->addItems([
+            true  => 'Sim',
+            false => 'Não'
+        ]);
 
         $row1 = $this->form->addFields([new TLabel("Jogo:", null, '14px', null, '100%'), $jogo_id], [new TLabel("Tempo:", null, '14px', null, '100%'),$tempo]);
         $row1->layout = ['col-sm-6', 'col-sm-6'];
@@ -248,7 +263,7 @@ class LogList extends TPage
 
         if (isset($data->tempo) and ((is_scalar($data->tempo) and $data->tempo !== '') or (is_array($data->tempo) and (!empty($data->tempo))))) {
 
-            $filters[] = new TFilter('tempo', '>=', $data->tempo);// create the filter
+            $filters[] = new TFilter('CAST(tempo AS NUMERIC)', '>=', $data->tempo);// create the filter
         }
 
         if (isset($data->nota_id) and ((is_scalar($data->nota_id) and $data->nota_id !== '') or (is_array($data->nota_id) and (!empty($data->nota_id))))) {
@@ -348,7 +363,7 @@ class LogList extends TPage
                         $sketch = Sketch::where('id', '=', $object->sketch_id)->first();
                         $row->popover = 'true';
                         $row->popside = 'top';
-                        $row->popcontent = "<img src='$sketch->imagem' style='max-width:200px;'>";
+                        $row->popcontent = "<img src='$sketch->imagem' style='max-width:500px;'>";
                         $row->poptitle = 'Item details';
                     }
                 }

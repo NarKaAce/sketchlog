@@ -74,10 +74,8 @@ class LogForm extends TPage
         $jogo_id->setMinLength(0);
         $jogo_id->setSize('100%');
 
-        $dataAtual = new DateTime();
         $dt_hr_ini->setMask('dd/mm/yyyy hh:mm:ss');
         $dt_hr_ini->setDatabaseMask('yyyy-mm-dd hh:mm:ss');
-        $dt_hr_ini->setValue($dataAtual->format('d/m/Y H:i:s'));
 
         $dt_hr_fim->setMask('dd/mm/yyyy hh:mm:ss');
         $dt_hr_fim->setDatabaseMask('yyyy-mm-dd hh:mm:ss');

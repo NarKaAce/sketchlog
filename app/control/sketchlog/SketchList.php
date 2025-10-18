@@ -70,7 +70,7 @@ class SketchList extends TPage
         $column_Sketch->setTransformer(function ($value, $object, $row, $cell = null, $last_row = null) {
             if($value)
             {
-                return '<img src="' . $value . '" width="160" height="200">';
+                return '<img src="' . $value . '" max-width="400" height="200">';
             }else{
                 return "Sem imagem";
             }

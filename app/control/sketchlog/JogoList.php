@@ -297,7 +297,7 @@ class JogoList extends TPage
                     {
                         $row->popover = 'true';
                         $row->popside = 'top';
-                        $row->popcontent = "<img src='$object->capa' style='max-width:200px;'>";
+                        $row->popcontent = "<img src='$object->capa' style='max-width:400px;'>";
                         $row->poptitle = 'Item details';
                     }
                 }
