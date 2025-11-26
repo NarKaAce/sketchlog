@@ -20,7 +20,7 @@ class LogForm extends TPage
         $id = new TEntry('id');
         $sketch_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('sketch_id', 'sketchlog', 'Sketch', 'id', 'nome');
         $jogo_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('jogo_id', 'sketchlog', 'Jogo', 'id', 'nome');
-        $data = new \Adianti\Widget\Form\TDateTime('dt');
+        $data = new \Adianti\Widget\Form\TEntry('dt');
         $tempo = new \Adianti\Widget\Form\TEntry('tempo');
         $nota_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('nota_id', 'sketchlog', 'Nota', 'id', 'descricao', 'valor desc');
         $dificuldade_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('dificuldade_id', 'sketchlog', 'Dificuldade', 'id', 'descricao', 'id desc');
@@ -73,11 +73,11 @@ class LogForm extends TPage
         $jogo_id->setMinLength(0);
         $jogo_id->setSize('100%');
 
-        $data->setMask('yyyy');
-        $data->setDatabaseMask('yyyy');
-
         $tempo->setSize('30%');
         $tempo->setMask('999');
+
+        $data->setSize('30%');
+        $data->setMask('9999');
 
         $log_replay->setBooleanMode();
         $log_platinado->setBooleanMode();
