@@ -20,7 +20,7 @@ class LogForm extends TPage
         $id = new TEntry('id');
         $sketch_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('sketch_id', 'sketchlog', 'Sketch', 'id', 'nome');
         $jogo_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('jogo_id', 'sketchlog', 'Jogo', 'id', 'nome');
-        $data = new \Adianti\Widget\Form\TDateTime('data');
+        $data = new \Adianti\Widget\Form\TDateTime('dt');
         $tempo = new \Adianti\Widget\Form\TEntry('tempo');
         $nota_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('nota_id', 'sketchlog', 'Nota', 'id', 'descricao', 'valor desc');
         $dificuldade_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('dificuldade_id', 'sketchlog', 'Dificuldade', 'id', 'descricao', 'id desc');
