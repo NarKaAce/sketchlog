@@ -17,8 +17,7 @@ class Log extends TRecord
         parent::__construct($id);
         parent::addAttribute('sketch_id');
         parent::addAttribute('jogo_id');
-        parent::addAttribute('dt_hr_ini');
-        parent::addAttribute('dt_hr_fim');
+        parent::addAttribute('data');
         parent::addAttribute('tempo');
         parent::addAttribute('nota_id');
         parent::addAttribute('dificuldade_id');

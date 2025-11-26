@@ -20,8 +20,7 @@ class LogForm extends TPage
         $id = new TEntry('id');
         $sketch_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('sketch_id', 'sketchlog', 'Sketch', 'id', 'nome');
         $jogo_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('jogo_id', 'sketchlog', 'Jogo', 'id', 'nome');
-        $dt_hr_ini = new \Adianti\Widget\Form\TDateTime('dt_hr_ini');
-        $dt_hr_fim = new \Adianti\Widget\Form\TDateTime('dt_hr_fim');
+        $data = new \Adianti\Widget\Form\TDateTime('data');
         $tempo = new \Adianti\Widget\Form\TEntry('tempo');
         $nota_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('nota_id', 'sketchlog', 'Nota', 'id', 'descricao', 'valor desc');
         $dificuldade_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('dificuldade_id', 'sketchlog', 'Dificuldade', 'id', 'descricao', 'id desc');
@@ -74,11 +73,8 @@ class LogForm extends TPage
         $jogo_id->setMinLength(0);
         $jogo_id->setSize('100%');
 
-        $dt_hr_ini->setMask('dd/mm/yyyy hh:mm:ss');
-        $dt_hr_ini->setDatabaseMask('yyyy-mm-dd hh:mm:ss');
-
-        $dt_hr_fim->setMask('dd/mm/yyyy hh:mm:ss');
-        $dt_hr_fim->setDatabaseMask('yyyy-mm-dd hh:mm:ss');
+        $data->setMask('yyyy');
+        $data->setDatabaseMask('yyyy');
 
         $tempo->setSize('30%');
         $tempo->setMask('999');
@@ -100,7 +96,7 @@ class LogForm extends TPage
         $row1->layout = ['col-sm-6','col-sm-6'];
         $row2 = $this->form->addFields([new TLabel('Sketch', null, '14px', null, "100%"), $sketch_id], [new TLabel('Jogo', null, '14px', null, "100%"), $jogo_id]);
         $row2->layout = ['col-sm-6','col-sm-6'];
-        $row3 = $this->form->addFields([new TLabel('Data de inicio', null, '14px', null, "100%"), $dt_hr_ini], [new TLabel('Data de Fim', null, '14px', null, "100%"), $dt_hr_fim]);
+        $row3 = $this->form->addFields([new TLabel('Data de inicio', null, '14px', null, "100%"), $data], []);
         $row3->layout = ['col-sm-6','col-sm-6'];
         $row4 = $this->form->addFields([new TLabel('Tempo de Jogo', null, '14px', null, "100%"), $tempo], [new TLabel('Nota', null, '14px', null, "100%"), $nota_id]);
         $row4->layout = ['col-sm-6','col-sm-6'];
