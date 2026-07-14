@@ -1,7 +1,7 @@
 <?php
 
 use Adianti\Widget\Form\TCombo;
-use Adianti\Widget\Wrapper\TDBUniqueSearch;
+use Adianti\Widget\Wrapper\TDBMultiCombo;
 
 class JogoForm extends TPage
 {
@@ -20,12 +20,11 @@ class JogoForm extends TPage
 
         $id = new TEntry('id');
         $nome = new TEntry('nome');
-        $distribuidora_id = new TDBUniqueSearch('distribuidora_id', 'sketchlog', 'Distribuidora', 'id', 'nome');
-        $desenvolvedor_id = new TDBUniqueSearch('desenvolvedor_id', 'sketchlog', 'Desenvolvedor', 'id', 'nome');
+        $distribuidora_id = new TDBMultiCombo('distribuidora_id', 'sketchlog', 'Distribuidora', 'id', 'nome');
+        $desenvolvedor_id = new TDBMultiCombo('desenvolvedor_id', 'sketchlog', 'Desenvolvedor', 'id', 'nome');
         $dt_publicacao = new TDate('dt_publicacao');
         $capa = new TFile('capa');
-        $genero_id = new TDBUniqueSearch('genero_id', 'sketchlog', 'Genero', 'id', 'nome');
-        $tipo_id = new TCombo('tipo_id');
+        $genero_id = new TDBMultiCombo('genero_id', 'sketchlog', 'Genero', 'id', 'nome');
 
         $button = new TActionLink('', new TAction(['DistribuidoraFormWindow', 'onEdit']), 'green', null, null, 'fa:plus-circle');
         $button->class = 'btn btn-default inline-button';
@@ -45,11 +44,6 @@ class JogoForm extends TPage
         $distribuidora_id->setSize('calc(100% - 40px)');
         $desenvolvedor_id->setSize('calc(100% - 40px)');
         $genero_id->setSize('100%');
-        $tipo_id->setSize('100%');
-
-        $distribuidora_id->setMinLength(0);
-        $desenvolvedor_id->setMinLength(0);
-        $genero_id->setMinLength(0);
 
         $capa->setAllowedExtensions( ['png', 'jpg', 'jpeg'] );
         $capa->enableImageGallery();
@@ -57,15 +51,13 @@ class JogoForm extends TPage
         $dt_publicacao->setMask('mm/yyyy');
         $dt_publicacao->setDatabaseMask('yyyy-mm');
 
-        $genero_id->setChangeAction( new TAction([$this, 'onChangeGenero'], $param));
-
         $row1 = $this->form->addFields([new TLabel('ID', null, '14px', null, "100%"), $id], [new TLabel('Nome', null, '14px', null, "100%"), $nome]);
         $row1->layout = ['col-sm-6','col-sm-6'];
         $row2 = $this->form->addFields([new TLabel('Distribuidora', null, '14px', null, "100%"), $distribuidora_id], [new TLabel('Desenvolvedor', null, '14px', null, "100%"), $desenvolvedor_id]);
         $row2->layout = ['col-sm-6','col-sm-6'];
         $row3 = $this->form->addFields([new TLabel('Data de Publicação', null, '14px', null, "100%"), $dt_publicacao], [new TLabel('Capa', null, '14px', null, "100%"), $capa]);
         $row3->layout = ['col-sm-6','col-sm-6'];
-        $row4 = $this->form->addFields([new TLabel('Gênero', null, '14px', null, "100%"), $genero_id], [new TLabel('Tipo', null, '14px', null, "100%"), $tipo_id]);
+        $row4 = $this->form->addFields([new TLabel('Gênero', null, '14px', null, "100%"), $genero_id], []);
         $row4->layout = ['col-sm-6','col-sm-6'];
 
         $this->form->addAction('Salvar', new TAction(array($this, 'onSave')), 'far:check-circle green');
@@ -89,23 +81,64 @@ class JogoForm extends TPage
         try {
             $data = $this->form->getData();
 
+            $generos = (array) ($data->genero_id ?? []);
+            $desenvolvedores = (array) ($data->desenvolvedor_id ?? []);
+            $distribuidoras = (array) ($data->distribuidora_id ?? []);
+
+            unset($data->genero_id, $data->desenvolvedor_id, $data->distribuidora_id);
+
             TTransaction::open(self::$database);
 
-            $obj = new Jogo();
+            $obj = new Jogo($data->id ?? null);
             $obj->fromArray((array) $data);
 
+            $obj->dt_publicacao = $obj->dt_publicacao . "-01";
+
             $obj->store();
+
+            JogoGeneros::where('jogo_id', '=', $obj->id)->delete();
+            JogoDesenvolvedores::where('jogo_id', '=', $obj->id)->delete();
+            JogoDistribuidoras::where('jogo_id', '=', $obj->id)->delete();
+
+            foreach ($generos as $genero_id) {
+                $jogo_genero = new JogoGeneros();
+                $jogo_genero->jogo_id = $obj->id;
+                $jogo_genero->genero_id = $genero_id;
+                $jogo_genero->store();
+            }
+
+            foreach ($desenvolvedores as $desenvolvedor_id) {
+                $jogo_desenvolvedor = new JogoDesenvolvedores();
+                $jogo_desenvolvedor->jogo_id = $obj->id;
+                $jogo_desenvolvedor->desenvolvedor_id = $desenvolvedor_id;
+                $jogo_desenvolvedor->store();
+            }
+
+            foreach ($distribuidoras as $distribuidora_id) {
+                $jogo_distribuidora = new JogoDistribuidoras();
+                $jogo_distribuidora->jogo_id = $obj->id;
+                $jogo_distribuidora->distribuidora_id = $distribuidora_id;
+                $jogo_distribuidora->store();
+            }
 
             TTransaction::close();
 
             TToast::show('success', "Registro salvo", 'topRight', 'far:check-circle');
             AdiantiCoreApplication::loadPage('JogoList', 'onReload');
-        }catch (Exception $e){
-            new TMessage('error', $e->getMessage()); // shows the exception error message
-            $this->form->setData( $this->form->getData() ); // keep form data
-            TTransaction::rollback(); // undo all pending operations
-        }
+        } catch (Exception $e) {
+            TTransaction::rollback();
 
+            if (isset($data)) {
+                $data->genero_id = $generos ?? [];
+                $data->desenvolvedor_id = $desenvolvedores ?? [];
+                $data->distribuidora_id = $distribuidoras ?? [];
+
+                $this->form->setData($data);
+            }
+
+            new TMessage('error', $e->getMessage());
+            $this->form->setData($this->form->getData());
+        }
     }
 
     public function onEdit($param)
@@ -114,14 +147,19 @@ class JogoForm extends TPage
         {
             if (isset($param['key']))
             {
-
-                TScript::create("$('[name=tipo_id]').closest('.col-sm-6.fb-field-container').show();");
                 $key = $param['key'];  // get the parameter $key
                 TTransaction::open(self::$database); // open a transaction
 
                 $object = new Jogo($key); // instantiates the Active Record
 
-                self::onChangeGenero(['genero_id' => $object->genero_id]);
+                $object->genero_id = JogoGeneros::where('jogo_id', '=', $key)
+                    ->getIndexedArray('genero_id', 'genero_id');
+
+                $object->desenvolvedor_id = JogoDesenvolvedores::where('jogo_id', '=', $key)
+                    ->getIndexedArray('desenvolvedor_id', 'desenvolvedor_id');
+
+                $object->distribuidora_id = JogoDistribuidoras::where('jogo_id', '=', $key)
+                    ->getIndexedArray('distribuidora_id', 'distribuidora_id');
 
                 $this->form->setData($object); // fill the form
 
@@ -142,29 +180,5 @@ class JogoForm extends TPage
     public function onShow($param = null)
     {
 
-    }
-
-    public static function onChangeGenero($param)
-    {
-        if(!empty($param['genero_id']))
-        {
-            TScript::create("$('[name=tipo_id]').closest('.col-sm-6.fb-field-container').show();");
-            $options = [];
-            \Adianti\Database\TTransaction::openFake(self::$database);
-            $tipos = Tipo::where('genero_id', '=', $param['genero_id'])->load();
-            \Adianti\Database\TTransaction::close();
-
-            if(!empty($tipos))
-            {
-                foreach ($tipos as $tipo)
-                {
-                    $options[$tipo->id] = $tipo->nome;
-                }
-            }
-
-            TCombo::reload(self::$formName, 'tipo_id', $options, true);
-        }else{
-            TScript::create("$('[name=tipo_id]').closest('.col-sm-6.fb-field-container').hide();");
-        }
     }
 }

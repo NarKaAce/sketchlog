@@ -4,7 +4,7 @@ return [
     'port'  =>  "",
     'name'  =>  "sketchlog_log",
     'user'  =>  "postgres",
-    'pass'  =>  "97332016Pp!",
+    'pass'  =>  "81215122",
     'type'  =>  "pgsql",
     'prep'  =>  "1",
     'case'  => "insensitive",

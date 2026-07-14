@@ -35,31 +35,19 @@ class JogoList extends TPage
         $this->limit = 20;
 
         $nome = new TEntry('nome');
-        $distribuidora_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('distribuidora_id', 'sketchlog', 'Distribuidora', 'id', 'nome');
-        $desenvolvedor_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('desenvolvedor_id', 'sketchlog', 'Desenvolvedor', 'id', 'nome');
-        $genero_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('genero_id', 'sketchlog', 'Genero', 'id', 'nome');
-        $tipo_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('tipo_id', 'sketchlog', 'Tipo', 'id', 'nome');
+        $distribuidora_id = new \Adianti\Widget\Wrapper\TDBMultiCombo('distribuidora_id', 'sketchlog', 'Distribuidora', 'id', 'nome');
+        $desenvolvedor_id = new \Adianti\Widget\Wrapper\TDBMultiCombo('desenvolvedor_id', 'sketchlog', 'Desenvolvedor', 'id', 'nome');
+        $genero_id = new \Adianti\Widget\Wrapper\TDBMultiCombo('genero_id', 'sketchlog', 'Genero', 'id', 'nome');
 
         $nome->setSize('100%');
-
-        $distribuidora_id->setMinLength(0);
         $distribuidora_id->setSize('100%');
-
-        $desenvolvedor_id->setMinLength(0);
         $desenvolvedor_id->setSize('100%');
-
-        $genero_id->setMinLength(0);
         $genero_id->setSize('100%');
-
-        $tipo_id->setMinLength(0);
-        $tipo_id->setSize('100%');
 
         $row1 = $this->form->addFields([new TLabel("Nome:", null, '14px', null, '100%'), $nome], [new TLabel("Distribuidora:", null, '14px', null, '100%'), $distribuidora_id]);
         $row1->layout = ['col-sm-6', 'col-sm-6'];
         $row2 = $this->form->addFields([new TLabel("Desenvolvedor:", null, '14px', null, '100%'), $desenvolvedor_id], [new TLabel("Genero:", null, '14px', null, '100%'), $genero_id]);
         $row2->layout = ['col-sm-6', 'col-sm-6'];
-        $row3 = $this->form->addFields([new TLabel("Tipo:", null, '14px', null, '100%'), $tipo_id], []);
-        $row3->layout = ['col-sm-6', 'col-sm-6'];
 
         $btn_onsearch = $this->form->addAction("Buscar", new TAction([$this, 'onSearch']), 'fas:search #ffffff');
         $this->btn_onsearch = $btn_onsearch;
@@ -83,11 +71,10 @@ class JogoList extends TPage
         $this->datagrid->setHeight(250);
 
         $column_nome = new TDataGridColumn('nome', "Nome", 'left');
-        $column_distribuidora = new TDataGridColumn('distribuidora->nome', 'Distribuidora', 'left');
-        $column_desenvolvedor = new TDataGridColumn('desenvolvedor->nome', "Desenvolvedor", 'left');
+        $column_distribuidora = new TDataGridColumn('nomes_distribuidoras', 'Distribuidora', 'left');
+        $column_desenvolvedor = new TDataGridColumn('nomes_desenvolvedores', "Desenvolvedor", 'left');
         $column_dt_publicacao = new TDataGridColumn('dt_publicacao', "Data de Publicação", 'left');
-        $column_genero = new TDataGridColumn('genero->nome', "Gênero", 'left');
-        $column_tipo = new TDataGridColumn('tipo->nome', "Tipo", 'left');
+        $column_genero = new TDataGridColumn('nomes_generos', "Gênero", 'left');
 
         $column_dt_publicacao->setTransformer(function ($value, $object, $row, $cell = null, $last_row = null) {
             if($value)
@@ -102,7 +89,6 @@ class JogoList extends TPage
         $this->datagrid->addColumn($column_desenvolvedor);
         $this->datagrid->addColumn($column_dt_publicacao);
         $this->datagrid->addColumn($column_genero);
-        $this->datagrid->addColumn($column_tipo);
 
         $action_onEdit = new TDataGridAction(array('JogoForm', 'onEdit'));
         $action_onEdit->setUseButton(false);
@@ -224,22 +210,17 @@ class JogoList extends TPage
 
         if (isset($data->distribuidora_id) and ((is_scalar($data->distribuidora_id) and $data->distribuidora_id !== '') or (is_array($data->distribuidora_id) and (!empty($data->distribuidora_id))))) {
 
-            $filters[] = new TFilter('distribuidora_id', '=', $data->distribuidora_id);// create the filter
+            $filters[] = new TFilter('distribuidora_id', 'in', $data->distribuidora_id);// create the filter
         }
 
         if (isset($data->desenvolvedor_id) and ((is_scalar($data->desenvolvedor_id) and $data->desenvolvedor_id !== '') or (is_array($data->desenvolvedor_id) and (!empty($data->desenvolvedor_id))))) {
 
-            $filters[] = new TFilter('desenvolvedor_id', '=', $data->desenvolvedor_id);// create the filter
+            $filters[] = new TFilter('desenvolvedor_id', 'in', $data->desenvolvedor_id);// create the filter
         }
 
         if (isset($data->genero_id) and ((is_scalar($data->genero_id) and $data->genero_id !== '') or (is_array($data->genero_id) and (!empty($data->genero_id))))) {
 
-            $filters[] = new TFilter('genero_id', '=', $data->genero_id);// create the filter
-        }
-
-        if (isset($data->tipo_id) and ((is_scalar($data->tipo_id) and $data->tipo_id !== '') or (is_array($data->tipo_id) and (!empty($data->tipo_id))))) {
-
-            $filters[] = new TFilter('tipo_id', '=', $data->tipo_id);// create the filter
+            $filters[] = new TFilter('genero_id', 'in', $data->genero_id);// create the filter
         }
 
         // fill the form with data again

@@ -6,58 +6,17 @@ class Jogo extends TRecord
     const PRIMARYKEY = 'id';
     const IDPOLICY   = 'serial'; // {max, serial}
 
-    private $distribuidora;
-    private $desenvolvedor;
-    private $capa;
-    private $genero;
-    private $tipo;
+    private $jogo_desenvolvedores;
+    private $jogo_distribuidoras;
+    private $jogo_generos;
 
     public function __construct ($id = null)
     {
         parent::__construct($id);
         parent::addAttribute('nome');
-        parent::addAttribute('distribuidora_id');
-        parent::addAttribute('desenvolvedor_id');
         parent::addAttribute('dt_publicacao');
         parent::addAttribute('capa');
-        parent::addAttribute('genero_id');
-        parent::addAttribute('tipo_id');
-    }
-
-    public function get_distribuidora()
-    {
-        if (empty($this->distribuidora))
-        {
-            $this->distribuidora = new Distribuidora($this->distribuidora_id);
-        }
-        return $this->distribuidora;
-    }
-
-    public function get_desenvolvedor()
-    {
-        if (empty($this->desenvolvedor))
-        {
-            $this->desenvolvedor = new Desenvolvedor($this->desenvolvedor_id);
-        }
-        return $this->desenvolvedor;
-    }
-
-    public function get_genero()
-    {
-        if (empty($this->genero))
-        {
-            $this->genero = new Genero($this->genero_id);
-        }
-        return $this->genero;
-    }
-
-    public function get_tipo()
-    {
-        if (empty($this->tipo))
-        {
-            $this->tipo = new Tipo($this->tipo_id);
-        }
-        return $this->tipo;
+        parent::addAttribute('steam_appid');
     }
 
     public function onBeforeStore($object)
@@ -80,5 +39,107 @@ class Jogo extends TRecord
                 $object->capa = $target_file;
             }
         }
+    }
+
+    public function get_jogo_desenvolvedores()
+    {
+        if (empty($this->jogo_desenvolvedores))
+        {
+            $criteria = new TCriteria;
+            $criteria->add(new TFilter('jogo_id', '=', $this->id));
+
+            $repository = new TRepository('JogoDesenvolvedores');
+            $this->jogo_desenvolvedores = $repository->load($criteria);
+        }
+
+        return $this->jogo_desenvolvedores;
+    }
+
+    public function get_nomes_desenvolvedores()
+    {
+        $nomes = [];
+
+        $jogo_desenvolvedores = $this->get_jogo_desenvolvedores();
+
+        if ($jogo_desenvolvedores)
+        {
+            foreach ($jogo_desenvolvedores as $item)
+            {
+                if ($item->desenvolvedor)
+                {
+                    $nomes[] = $item->desenvolvedor->nome;
+                }
+            }
+        }
+
+        return implode(', ', $nomes);
+    }
+
+    public function get_jogo_distribuidoras()
+    {
+        if (empty($this->jogo_distribuidoras))
+        {
+            $criteria = new TCriteria;
+            $criteria->add(new TFilter('jogo_id', '=', $this->id));
+
+            $repository = new TRepository('JogoDistribuidoras');
+            $this->jogo_distribuidoras = $repository->load($criteria);
+        }
+
+        return $this->jogo_distribuidoras;
+    }
+
+    public function get_nomes_distribuidoras()
+    {
+        $nomes = [];
+
+        $jogo_distribuidoras = $this->get_jogo_distribuidoras();
+
+        if ($jogo_distribuidoras)
+        {
+            foreach ($jogo_distribuidoras as $item)
+            {
+                if ($item->distribuidora)
+                {
+                    $nomes[] = $item->distribuidora->nome;
+                }
+            }
+        }
+
+        return implode(', ', $nomes);
+    }
+
+    public function get_jogo_generos()
+    {
+        if (empty($this->jogo_generos))
+        {
+            $criteria = new TCriteria;
+            $criteria->add(new TFilter('jogo_id', '=', $this->id));
+
+            $repository = new TRepository('JogoGeneros');
+            $this->jogo_generos = $repository->load($criteria);
+        }
+
+        return $this->jogo_generos;
+    }
+
+    public function get_nomes_generos()
+    {
+        $nomes = [];
+
+        $jogo_generos = $this->get_jogo_generos();
+
+        if ($jogo_generos)
+        {
+            foreach ($jogo_generos as $item)
+            {
+                if ($item->genero)
+                {
+                    $nomes[] = $item->genero->nome;
+                }
+            }
+        }
+
+        return implode(', ', $nomes);
     }
 }
