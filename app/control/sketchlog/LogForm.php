@@ -20,7 +20,6 @@ class LogForm extends TPage
         $id = new TEntry('id');
         $sketch_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('sketch_id', 'sketchlog', 'Sketch', 'id', 'nome');
         $jogo_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('jogo_id', 'sketchlog', 'Jogo', 'id', 'nome');
-        $data = new \Adianti\Widget\Form\TEntry('dt');
         $tempo = new \Adianti\Widget\Form\TEntry('tempo');
         $nota_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('nota_id', 'sketchlog', 'Nota', 'id', 'descricao', 'valor desc');
         $dificuldade_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('dificuldade_id', 'sketchlog', 'Dificuldade', 'id', 'descricao', 'id desc');
@@ -76,9 +75,6 @@ class LogForm extends TPage
         $tempo->setSize('30%');
         $tempo->setMask('999');
 
-        $data->setSize('30%');
-        $data->setMask('9999');
-
         $log_replay->setBooleanMode();
         $log_platinado->setBooleanMode();
         $log_goty->setBooleanMode();
@@ -96,9 +92,7 @@ class LogForm extends TPage
         $row1->layout = ['col-sm-6','col-sm-6'];
         $row2 = $this->form->addFields([new TLabel('Sketch', null, '14px', null, "100%"), $sketch_id], [new TLabel('Jogo', null, '14px', null, "100%"), $jogo_id]);
         $row2->layout = ['col-sm-6','col-sm-6'];
-        $row3 = $this->form->addFields([new TLabel('Data de inicio', null, '14px', null, "100%"), $data], []);
-        $row3->layout = ['col-sm-6','col-sm-6'];
-        $row4 = $this->form->addFields([new TLabel('Tempo de Jogo', null, '14px', null, "100%"), $tempo], [new TLabel('Nota', null, '14px', null, "100%"), $nota_id]);
+        $row4 = $this->form->addFields([new TLabel('Tempo de Jogo (horas totais)', null, '14px', null, "100%"), $tempo], [new TLabel('Nota', null, '14px', null, "100%"), $nota_id]);
         $row4->layout = ['col-sm-6','col-sm-6'];
         $row4 = $this->form->addFields([new TLabel('Dificuldade', null, '14px', null, "100%"), $dificuldade_id], [new TLabel('Console', null, '14px', null, "100%"), $console_id]);
         $row4->layout = ['col-sm-6','col-sm-6'];
@@ -137,6 +131,8 @@ class LogForm extends TPage
 
             $obj = new Log();
             $obj->fromArray((array) $data);
+
+            $obj->dt = date("Y");
 
             $obj->store();
 
