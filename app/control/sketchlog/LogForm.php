@@ -23,14 +23,12 @@ class LogForm extends TPage
         $tempo = new \Adianti\Widget\Form\TEntry('tempo');
         $nota_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('nota_id', 'sketchlog', 'Nota', 'id', 'descricao', 'valor desc');
         $dificuldade_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('dificuldade_id', 'sketchlog', 'Dificuldade', 'id', 'descricao', 'id desc');
-        $log_replay = new \Adianti\Widget\Form\TRadioGroup('log_replay');
-        $log_zerado = new \Adianti\Widget\Form\TRadioGroup('log_zerado');
-        $log_platinado = new \Adianti\Widget\Form\TRadioGroup('log_platinado');
         $log_goty = new \Adianti\Widget\Form\TRadioGroup('log_goty');
         $console_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('console_id', 'sketchlog', 'Console', 'id', 'nome');
         $conquistas_totais = new \Adianti\Widget\Form\TEntry('conquistas_totais');
         $conquistas_feitas = new \Adianti\Widget\Form\TEntry('conquistas_feitas');
         $review = new \Adianti\Widget\Form\TText('review');
+        $status_id = new \Adianti\Widget\Form\TUniqueSearch('status_id');
 
         $id->setEditable(FALSE);
         $id->setSize("100%");
@@ -72,13 +70,14 @@ class LogForm extends TPage
         $jogo_id->setMinLength(0);
         $jogo_id->setSize('100%');
 
-        $tempo->setSize('30%');
-        $tempo->setMask('999');
+        $status_id->setMinLength(0);
+        $status_id->setSize('100%');
+        $status_id->addItems([1 => "Zerado", 2 => "Platinado", 3 => "Dropado", 4 => "Jogando", 5 => "Replay"]);
 
-        $log_replay->setBooleanMode();
-        $log_platinado->setBooleanMode();
+        $tempo->setSize('30%');
+        $tempo->setMask('9999');
+
         $log_goty->setBooleanMode();
-        $log_zerado->setBooleanMode();
 
         $conquistas_feitas->setMask('999');
         $conquistas_feitas->setSize('30%');
@@ -86,7 +85,7 @@ class LogForm extends TPage
         $conquistas_totais->setMask('999');
         $conquistas_totais->setSize('30%');
 
-        $review->setSize('100%', 503);
+        $review->setSize('100%', 371);
 
         $row1 = $this->form->addFields([new TLabel('ID', null, '14px', null, "100%"), $id], []);
         $row1->layout = ['col-sm-6','col-sm-6'];
@@ -96,9 +95,7 @@ class LogForm extends TPage
         $row4->layout = ['col-sm-6','col-sm-6'];
         $row4 = $this->form->addFields([new TLabel('Dificuldade', null, '14px', null, "100%"), $dificuldade_id], [new TLabel('Console', null, '14px', null, "100%"), $console_id]);
         $row4->layout = ['col-sm-6','col-sm-6'];
-        $row5 = $this->form->addFields([new TLabel('Replay?', null, '14px', null, "100%"), $log_replay], [new TLabel('Zerado?', null, '14px', null, "100%"), $log_zerado]);
-        $row5->layout = ['col-sm-6','col-sm-6'];
-        $row6 = $this->form->addFields([new TLabel('Platinado?', null, '14px', null, "100%"), $log_platinado], [new TLabel('GOTY?', null, '14px', null, "100%"), $log_goty]);
+        $row6 = $this->form->addFields([new TLabel('Status', null, '14px', null, "100%"), $status_id], [new TLabel('GOTY?', null, '14px', null, "100%"), $log_goty]);
         $row6->layout = ['col-sm-6','col-sm-6'];
         $row7 = $this->form->addFields([new TLabel('Conquistas Feitas', null, '14px', null, "100%"), $conquistas_feitas], [new TLabel('Conquistas Totais', null, '14px', null, "100%"), $conquistas_totais]);
         $row7->layout = ['col-sm-6','col-sm-6'];

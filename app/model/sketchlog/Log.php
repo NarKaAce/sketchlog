@@ -21,15 +21,13 @@ class Log extends TRecord
         parent::addAttribute('tempo');
         parent::addAttribute('nota_id');
         parent::addAttribute('dificuldade_id');
-        parent::addAttribute('log_replay');
-        parent::addAttribute('log_zerado');
-        parent::addAttribute('log_platinado');
         parent::addAttribute('console_id');
         parent::addAttribute('conquistas_feitas');
         parent::addAttribute('conquistas_totais');
         parent::addAttribute('log_goty');
         parent::addAttribute('usuario_id');
         parent::addAttribute('review');
+        parent::addAttribute('status_id');
     }
 
     // --- Relações (padrão Adianti) ---

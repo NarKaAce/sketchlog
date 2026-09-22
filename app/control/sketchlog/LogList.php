@@ -40,10 +40,8 @@ class LogList extends TPage
         $dificuldade_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('dificuldade_id', 'sketchlog', 'Dificuldade', 'id', 'descricao');
         $console_id = new \Adianti\Widget\Wrapper\TDBUniqueSearch('console_id', 'sketchlog', 'Console', 'id', 'nome');
         $conquistas = new \Adianti\Widget\Form\TEntry('conquistas_feitas');
-        $log_replay = new \Adianti\Widget\Form\TCombo('log_replay');
-        $log_zerado = new \Adianti\Widget\Form\TCombo('log_zerado');
-        $log_platinado = new \Adianti\Widget\Form\TCombo('log_platinado');
         $log_goty = new \Adianti\Widget\Form\TCombo('log_goty');
+        $status_id = new \Adianti\Widget\Form\TUniqueSearch('status_id');
 
         $tempo->setMask('999');
 
@@ -59,22 +57,11 @@ class LogList extends TPage
         $console_id->setMinLength(0);
         $console_id->setSize('100%');
 
+        $status_id->setMinLength(0);
+        $status_id->setSize('100%');
+        $status_id->addItems([1 => "Zerado", 2 => "Platinado", 3 => "Dropado", 4 => "Jogando", 5 => "Replay"]);
+
         $conquistas->setMask('9!');
-
-        $log_replay->addItems([
-            true  => 'Sim',
-            false => 'Não'
-        ]);
-
-        $log_zerado->addItems([
-            true  => 'Sim',
-            false => 'Não'
-        ]);
-
-        $log_platinado->addItems([
-            true  => 'Sim',
-            false => 'Não'
-        ]);
 
         $log_goty->addItems([
             true  => 'Sim',
@@ -87,9 +74,7 @@ class LogList extends TPage
         $row2->layout = ['col-sm-6', 'col-sm-6'];
         $row3 = $this->form->addFields([new TLabel("Console:", null, '14px', null, '100%'), $console_id], [new TLabel("Conquistas:", null, '14px', null, '100%'),$conquistas]);
         $row3->layout = ['col-sm-6', 'col-sm-6'];
-        $row4 = $this->form->addFields([new TLabel("Replay?", null, '14px', null, '100%'), $log_replay], [new TLabel("Zerado?", null, '14px', null, '100%'),$log_zerado]);
-        $row4->layout = ['col-sm-6', 'col-sm-6'];
-        $row5 = $this->form->addFields([new TLabel("Platinado?", null, '14px', null, '100%'), $log_platinado], [new TLabel("GOTY?", null, '14px', null, '100%'),$log_goty]);
+        $row5 = $this->form->addFields([new TLabel("Status", null, '14px', null, '100%'), $status_id], [new TLabel("GOTY?", null, '14px', null, '100%'),$log_goty]);
         $row5->layout = ['col-sm-6', 'col-sm-6'];
 
         $btn_onsearch = $this->form->addAction("Buscar", new TAction([$this, 'onSearch']), 'fas:search #ffffff');
@@ -286,19 +271,9 @@ class LogList extends TPage
             $filters[] = new TFilter('conquistas_feitas', '=', $data->conquistas_feitas);// create the filter
         }
 
-        if (isset($data->log_replay) and ((is_scalar($data->log_replay) and $data->log_replay !== '') or (is_array($data->log_replay) and (!empty($data->log_replay))))) {
+        if (isset($data->status_id) and ((is_scalar($data->status_id) and $data->status_id !== '') or (is_array($data->status_id) and (!empty($data->status_id))))) {
 
-            $filters[] = new TFilter('log_replay', '=', $data->log_replay);// create the filter
-        }
-
-        if (isset($data->log_zerado) and ((is_scalar($data->log_zerado) and $data->log_zerado !== '') or (is_array($data->log_zerado) and (!empty($data->log_zerado))))) {
-
-            $filters[] = new TFilter('log_zerado', '=', $data->log_zerado);// create the filter
-        }
-
-        if (isset($data->log_platinado) and ((is_scalar($data->log_platinado) and $data->log_platinado !== '') or (is_array($data->log_platinado) and (!empty($data->log_platinado))))) {
-
-            $filters[] = new TFilter('log_platinado', '=', $data->log_platinado);// create the filter
+            $filters[] = new TFilter('status_id', '=', $data->status_id);// create the filter
         }
 
         if (isset($data->log_goty) and ((is_scalar($data->log_goty) and $data->log_goty !== '') or (is_array($data->log_goty) and (!empty($data->log_goty))))) {
