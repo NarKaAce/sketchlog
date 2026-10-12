@@ -17,6 +17,7 @@ class Jogo extends TRecord
         parent::addAttribute('dt_publicacao');
         parent::addAttribute('capa');
         parent::addAttribute('steam_appid');
+        parent::addAttribute('conquistas_totais');
     }
 
     public function onBeforeStore($object)

@@ -1,6 +1,7 @@
 <?php
 
 use Adianti\Widget\Form\TCombo;
+use Adianti\Widget\Form\TEntry;
 use Adianti\Widget\Wrapper\TDBMultiCombo;
 
 class JogoForm extends TPage
@@ -25,6 +26,7 @@ class JogoForm extends TPage
         $dt_publicacao = new TDate('dt_publicacao');
         $capa = new TFile('capa');
         $genero_id = new TDBMultiCombo('genero_id', 'sketchlog', 'Genero', 'id', 'nome');
+        $conquistas_totais = new TEntry('conquistas_totais');
 
         $button = new TActionLink('', new TAction(['DistribuidoraFormWindow', 'onEdit']), 'green', null, null, 'fa:plus-circle');
         $button->class = 'btn btn-default inline-button';
@@ -44,6 +46,9 @@ class JogoForm extends TPage
         $distribuidora_id->setSize('calc(100% - 40px)');
         $desenvolvedor_id->setSize('calc(100% - 40px)');
         $genero_id->setSize('100%');
+        $conquistas_totais->setSize('100%');
+
+        $conquistas_totais->setMask('999');
 
         $capa->setAllowedExtensions( ['png', 'jpg', 'jpeg'] );
         $capa->enableImageGallery();
@@ -57,7 +62,7 @@ class JogoForm extends TPage
         $row2->layout = ['col-sm-6','col-sm-6'];
         $row3 = $this->form->addFields([new TLabel('Data de Publicação', null, '14px', null, "100%"), $dt_publicacao], [new TLabel('Capa', null, '14px', null, "100%"), $capa]);
         $row3->layout = ['col-sm-6','col-sm-6'];
-        $row4 = $this->form->addFields([new TLabel('Gênero', null, '14px', null, "100%"), $genero_id], []);
+        $row4 = $this->form->addFields([new TLabel('Gênero', null, '14px', null, "100%"), $genero_id], [new TLabel('Conquistas Totais', null, '14px', null, "100%"), $conquistas_totais]);
         $row4->layout = ['col-sm-6','col-sm-6'];
 
         $this->form->addAction('Salvar', new TAction(array($this, 'onSave')), 'far:check-circle green');
@@ -72,8 +77,6 @@ class JogoForm extends TPage
         $this->form->addHeaderWidget($btnClose);
 
         parent::add($this->form);
-
-        TScript::create("$('[name=tipo_id]').closest('.col-sm-6.fb-field-container').hide();");
     }
 
     public function onSave($param)
@@ -100,25 +103,34 @@ class JogoForm extends TPage
             JogoDesenvolvedores::where('jogo_id', '=', $obj->id)->delete();
             JogoDistribuidoras::where('jogo_id', '=', $obj->id)->delete();
 
-            foreach ($generos as $genero_id) {
-                $jogo_genero = new JogoGeneros();
-                $jogo_genero->jogo_id = $obj->id;
-                $jogo_genero->genero_id = $genero_id;
-                $jogo_genero->store();
+            if($generos !== null)
+            {
+                foreach ($generos as $genero_id) {
+                    $jogo_genero = new JogoGeneros();
+                    $jogo_genero->jogo_id = $obj->id;
+                    $jogo_genero->genero_id = $genero_id;
+                    $jogo_genero->store();
+                }
             }
 
-            foreach ($desenvolvedores as $desenvolvedor_id) {
-                $jogo_desenvolvedor = new JogoDesenvolvedores();
-                $jogo_desenvolvedor->jogo_id = $obj->id;
-                $jogo_desenvolvedor->desenvolvedor_id = $desenvolvedor_id;
-                $jogo_desenvolvedor->store();
+            if($desenvolvedores !== null)
+            {
+                foreach ($desenvolvedores as $desenvolvedor_id) {
+                    $jogo_desenvolvedor = new JogoDesenvolvedores();
+                    $jogo_desenvolvedor->jogo_id = $obj->id;
+                    $jogo_desenvolvedor->desenvolvedor_id = $desenvolvedor_id;
+                    $jogo_desenvolvedor->store();
+                }
             }
 
-            foreach ($distribuidoras as $distribuidora_id) {
-                $jogo_distribuidora = new JogoDistribuidoras();
-                $jogo_distribuidora->jogo_id = $obj->id;
-                $jogo_distribuidora->distribuidora_id = $distribuidora_id;
-                $jogo_distribuidora->store();
+            if($distribuidoras !== null)
+            {
+                foreach ($distribuidoras as $distribuidora_id) {
+                    $jogo_distribuidora = new JogoDistribuidoras();
+                    $jogo_distribuidora->jogo_id = $obj->id;
+                    $jogo_distribuidora->distribuidora_id = $distribuidora_id;
+                    $jogo_distribuidora->store();
+                }
             }
 
             TTransaction::close();

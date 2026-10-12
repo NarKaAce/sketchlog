@@ -9,51 +9,156 @@ class SteamGameImporterService
 
     public function __construct()
     {
-        $this->steamApiKey = getenv('STEAM_API_KEY')
-            ?: (function_exists('apache_getenv') ? apache_getenv('STEAM_API_KEY') : null)
-                ?: ($_SERVER['STEAM_API_KEY'] ?? null)
-                    ?: ($_ENV['STEAM_API_KEY'] ?? null);
+        $steamApiKey = trim((string) (
+            $_ENV['STEAM_API_KEY']
+            ?? $_SERVER['STEAM_API_KEY']
+            ?? ''
+        ));
 
-        if (!$this->steamApiKey) {
-            throw new Exception('STEAM_API_KEY não configurada.');
+        if ($steamApiKey === '') {
+            throw new RuntimeException(
+                'STEAM_API_KEY não foi encontrada no ambiente.'
+            );
         }
+
+        if (!preg_match('/^[a-f0-9]{32}$/i', $steamApiKey)) {
+            throw new RuntimeException(
+                'STEAM_API_KEY possui um formato inválido.'
+            );
+        }
+
+        $this->steamApiKey = $steamApiKey;
     }
 
-    public function importar(int $limite = 50, ?int $inicio = null): void
+    public function getOwnedGames(string $identificador): array
     {
+        $steamId64 = $this->resolverSteamId64($identificador);
+
+        $input = [
+            'steamid' => $steamId64,
+            'include_appinfo' => true,
+            'include_played_free_games' => true,
+        ];
+
+        $json = $this->getSteamJson(
+            '/IPlayerService/GetOwnedGames/v1/',
+            ['input_json' => json_encode($input)]
+        );
+
+        return $json['response']['games'] ?? [];
+    }
+
+    public function resolverSteamId64(string $identificador): string
+    {
+        $identificador = trim($identificador);
+
+        if ($identificador === '') {
+            throw new InvalidArgumentException(
+                'Informe o SteamID64 ou o identificador personalizado.'
+            );
+        }
+
+        if (preg_match('/^\d{17}$/', $identificador)) {
+            return $identificador;
+        }
+
+        if (filter_var($identificador, FILTER_VALIDATE_URL)) {
+            throw new InvalidArgumentException(
+                'Informe somente o SteamID64 ou o identificador personalizado, sem a URL.'
+            );
+        }
+
+        $json = $this->getSteamJson(
+            '/ISteamUser/ResolveVanityURL/v1/',
+            ['vanityurl' => $identificador]
+        );
+
+        if (
+            ($json['response']['success'] ?? 0) !== 1
+            || empty($json['response']['steamid'])
+        ) {
+            throw new RuntimeException(
+                'Não foi possível encontrar o perfil Steam informado.'
+            );
+        }
+
+        return (string) $json['response']['steamid'];
+    }
+
+    public function getDetalhesJogo(int $appid): ?array
+    {
+        $url = 'https://store.steampowered.com/api/appdetails?' .
+            http_build_query([
+                'appids' => $appid,
+                'cc' => 'BR',
+                'l' => 'brazilian'
+            ]);
+
+        $json = $this->getJson($url);
+        $resultado = $json[(string) $appid] ?? null;
+
+        if (!$resultado || !($resultado['success'] ?? false)) {
+            return null;
+        }
+
+        return $resultado['data'] ?? null;
+    }
+
+    private function salvarJogo(int $appid, array $detalhes): void
+    {
+        $jogo = new Jogo();
+        $jogo->steam_appid = $appid;
+        $jogo->nome = $detalhes['name'] ?? '';
+        $jogo->dt_publicacao = $this->formatSteamDate(
+            $detalhes['release_date']['date'] ?? null
+        );
+        $jogo->capa = $detalhes['header_image'] ?? null;
+        $jogo->conquistas_totais =
+            $detalhes['achievements']['total'] ?? 0;
+
+        $jogo->store();
+
+        $this->gerenciarRelacionamentos(
+            $detalhes,
+            $jogo->id
+        );
+    }
+
+    public function sincronizarLote(array $jogos, int $offset, int $limite = 10): array {
+
+        $lote = array_slice($jogos, $offset, $limite);
+        $importados = 0;
+        $ignorados = 0;
+
         TTransaction::open($this->database);
 
         try {
-            if ($inicio === null) {
-                $inicio = $this->getControleInt('steam_last_appid', 0);
-            }
+            foreach ($lote as $jogoSteam) {
+                $appid = (int) $jogoSteam['appid'];
 
-            $apps = $this->buscarListaSteam($limite, $inicio);
+                $jogoBanco = Jogo::where('steam_appid', '=', $appid)->first();
 
-            foreach ($apps as $app) {
-                $appid = (int) $app['appid'];
-                $details = $this->buscarDetalhes($appid);
-
-                if (!$details || ($details['type'] ?? null) !== 'game') {
+                if ($jogoBanco instanceof Jogo) {
+                    $ignorados++;
                     continue;
                 }
 
-                if (!$this->jogoJaFoiLancado($details)) {
+                usleep(2000000); // 1 segundo
+
+                $detalhes = $this->getDetalhesJogo($appid);
+
+                if ($detalhes === null) {
+                    $ignorados++;
                     continue;
                 }
 
-                $jogoId = $this->salvarJogo($appid, $details);
+                if (!$this->deveSincronizarJogo($detalhes)) {
+                    $ignorados++;
+                    continue;
+                }
 
-                $this->salvarGeneros($jogoId, $details['genres'] ?? []);
-                $this->salvarDesenvolvedores($jogoId, $details['developers'] ?? []);
-                $this->salvarDistribuidoras($jogoId, $details['publishers'] ?? []);
-
-                sleep(1);
-            }
-
-            if (!empty($apps)) {
-                $ultimoApp = end($apps);
-                $this->setControleInt('steam_last_appid', (int) $ultimoApp['appid']);
+                $this->salvarJogo($appid, $detalhes);
+                $importados++;
             }
 
             TTransaction::close();
@@ -61,368 +166,221 @@ class SteamGameImporterService
             TTransaction::rollback();
             throw $e;
         }
+
+        $proximoOffset = $offset + count($lote);
+
+        return [
+            'importados'     => $importados,
+            'ignorados'      => $ignorados,
+            'processados'    => $proximoOffset,
+            'total'          => count($jogos),
+            'proximo_offset' => $proximoOffset,
+            'concluido'      => $proximoOffset >= count($jogos),
+        ];
     }
 
-    private function buscarListaSteam(int $limite, int $lastAppid = 0): array
+    private function deveSincronizarJogo(array $detalhes): bool
     {
-        return $this->buscarListaSteamIStoreService($limite, $lastAppid);
-    }
-
-    private function jogoJaFoiLancado(array $details): bool
-    {
-        if (!empty($details['release_date']['coming_soon'])) {
+        if (($detalhes['type'] ?? null) !== 'game') {
             return false;
         }
 
-        $data = $this->formatarDataSteam($details['release_date']['date'] ?? null);
+        $nome = mb_strtolower(
+            trim($detalhes['name'] ?? '')
+        );
 
-        if (!$data) {
+        if ($nome === '') {
             return false;
         }
 
-        return $data <= date('Y-m-d');
-    }
-
-    private function getControleInt(string $chave, int $padrao = 0): int
-    {
-        $conn = TTransaction::get();
-
-        $stmt = $conn->prepare("
-        SELECT valor
-        FROM steam_import_controle
-        WHERE chave = :chave
-    ");
-
-        $stmt->execute([
-            ':chave' => $chave,
-        ]);
-
-        $valor = $stmt->fetchColumn();
-
-        return $valor !== false ? (int) $valor : $padrao;
-    }
-
-    private function setControleInt(string $chave, int $valor): void
-    {
-        $conn = TTransaction::get();
-
-        $stmt = $conn->prepare("
-        INSERT INTO steam_import_controle (
-            chave,
-            valor,
-            atualizado_em
-        )
-        VALUES (
-            :chave,
-            :valor,
-            CURRENT_TIMESTAMP
-        )
-        ON CONFLICT (chave) DO UPDATE SET
-            valor = EXCLUDED.valor,
-            atualizado_em = CURRENT_TIMESTAMP
-    ");
-
-        $stmt->execute([
-            ':chave' => $chave,
-            ':valor' => (string) $valor,
-        ]);
-    }
-
-    private function buscarListaSteamIStoreService(int $limite, int $lastAppid = 0): array
-    {
-        $input = [
-            'include_games' => true,
-            'include_dlc' => false,
-            'include_software' => false,
-            'include_videos' => false,
-            'include_hardware' => false,
-            'max_results' => $limite,
+        $padroesIgnorados = [
+            '/\bplaytest\b/iu',
+            '/\bbeta\b/iu',
+            '/\balpha\b/iu',
+            '/\bdemo\b/iu',
+            '/\bteste\b/iu',
+            '/\btest\b/iu',
+            '/\btesting\b/iu',
+            '/\btechnical test\b/iu',
+            '/\bpublic test\b/iu',
+            '/\btest server\b/iu',
+            '/\bdedicated server\b/iu',
+            '/\bbenchmark\b/iu',
         ];
 
-        if ($lastAppid > 0) {
-            $input['last_appid'] = $lastAppid;
+        foreach ($padroesIgnorados as $padrao) {
+            if (preg_match($padrao, $nome)) {
+                return false;
+            }
         }
 
-        $url = 'https://partner.steam-api.com/IStoreService/GetAppList/v1/?' . http_build_query([
+        return true;
+    }
+
+    public function formatSteamDate(?string $data): ?string
+    {
+        if (empty($data)) {
+            return null;
+        }
+
+        $meses = [
+            'jan' => 1,
+            'fev' => 2,
+            'mar' => 3,
+            'abr' => 4,
+            'mai' => 5,
+            'jun' => 6,
+            'jul' => 7,
+            'ago' => 8,
+            'set' => 9,
+            'out' => 10,
+            'nov' => 11,
+            'dez' => 12,
+        ];
+
+        $data = mb_strtolower(trim($data));
+
+        if (!preg_match('/^(\d{1,2})\/([a-zç]+)\.?\/(\d{4})$/u',$data,$partes)) {
+            return null;
+        }
+
+        $dia = (int) $partes[1];
+        $mesTexto = $partes[2];
+        $ano = (int) $partes[3];
+
+        $mes = $meses[$mesTexto] ?? null;
+
+        if ($mes === null || !checkdate($mes, $dia, $ano)) {
+            return null;
+        }
+
+        return sprintf('%04d-%02d-%02d', $ano, $mes, $dia);
+    }
+
+    public function gerenciarRelacionamentos($detalhes, $jogoId)
+    {
+        if($detalhes !== null)
+        {
+            $desenvolvedores = $detalhes['developers'] ?? [];
+            $distribuidoras = $detalhes['publishers'] ?? [];
+            $generos = $detalhes['genres'] ?? [];
+
+            $this->setGeneros($generos, $jogoId);
+            $this->setDistribuidoras($distribuidoras, $jogoId);
+            $this->setDesenvolvedores($desenvolvedores, $jogoId);
+        }
+    }
+
+    public function setGeneros($generos, $jogoId)
+    {
+        if($generos !== null) {
+            foreach ($generos as $genero) {
+
+                $obj = Genero::where('nome', '=', $genero['description'])->first();
+
+                if($obj === null)
+                {
+                    $obj = new Genero();
+                    $obj->nome = $genero['description'];
+                    $obj->store();
+                }
+
+                $relacionamento = new JogoGeneros();
+                $relacionamento->jogo_id = $jogoId;
+                $relacionamento->genero_id = $obj->id;
+                $relacionamento->store();
+            }
+        }
+    }
+
+    public function setDesenvolvedores($desenvolvedores, $jogoId)
+    {
+        if($desenvolvedores !== null) {
+            foreach ($desenvolvedores as $desenvolvedor) {
+
+                $obj = Desenvolvedor::where('nome', '=', $desenvolvedor)->first();
+
+                if($obj === null)
+                {
+                    $obj = new Desenvolvedor();
+                    $obj->nome = $desenvolvedor;
+                    $obj->store();
+                }
+
+                $relacionamento = new JogoDesenvolvedores();
+                $relacionamento->jogo_id = $jogoId;
+                $relacionamento->desenvolvedor_id = $obj->id;
+                $relacionamento->store();
+            }
+        }
+    }
+
+    public function setDistribuidoras($distribuidoras, $jogoId)
+    {
+        if($distribuidoras !== null) {
+            foreach ($distribuidoras as $distribuidora) {
+
+                $obj = Distribuidora::where('nome', '=', $distribuidora)->first();
+
+                if($obj === null)
+                {
+                    $obj = new Distribuidora();
+                    $obj->nome = $distribuidora;
+                    $obj->store();
+                }
+
+                $relacionamento = new JogoDistribuidoras();
+                $relacionamento->jogo_id = $jogoId;
+                $relacionamento->distribuidora_id = $obj->id;
+                $relacionamento->store();
+            }
+        }
+    }
+
+    private function getSteamJson(string $endpoint, array $parametros = []): array
+    {
+        $url = 'https://api.steampowered.com' . $endpoint . '?'
+            . http_build_query([
                 'key' => $this->steamApiKey,
-                'input_json' => json_encode($input),
+                ...$parametros,
             ]);
 
-        return $this->getJson($url)['response']['apps'] ?? [];
-    }
-
-    private function buscarListaSteamStoreSearch(int $limite): array
-    {
-        $url = 'https://store.steampowered.com/search/results/?' . http_build_query([
-                'query' => '',
-                'start' => 0,
-                'count' => $limite,
-                'dynamic_data' => '',
-                'sort_by' => '_ASC',
-                'category1' => 998,
-                'infinite' => 1,
-            ]);
-
-        $json = $this->getJson($url);
-
-        $html = $json['results_html'] ?? '';
-
-        if (!$html) {
-            throw new Exception('Steam Store Search não retornou HTML de resultados.');
-        }
-
-        preg_match_all('/\/app\/(\d+)\//', $html, $matches);
-
-        $appids = array_values(array_unique($matches[1] ?? []));
-
-        if (empty($appids)) {
-            throw new Exception('Nenhum appid encontrado no resultado da Steam Store.');
-        }
-
-        $apps = [];
-
-        foreach (array_slice($appids, 0, $limite) as $appid) {
-            $apps[] = [
-                'appid' => (int) $appid,
-            ];
-        }
-
-        return $apps;
-    }
-
-    private function buscarDetalhes(int $appid): ?array
-    {
-        $url = 'https://store.steampowered.com/api/appdetails?' . http_build_query([
-                'appids' => $appid,
-                'cc' => 'br',
-                'l' => 'portuguese',
-            ]);
-
-        $json = $this->getJson($url);
-
-        if (
-            empty($json[$appid]) ||
-            empty($json[$appid]['success']) ||
-            empty($json[$appid]['data'])
-        ) {
-            return null;
-        }
-
-        return $json[$appid]['data'];
-    }
-
-    private function salvarJogo(int $appid, array $details): int
-    {
-        $conn = TTransaction::get();
-
-        $nome = trim($details['name'] ?? '');
-        $capa = $details['header_image'] ?? null;
-        $dtPublicacao = $this->formatarDataSteam($details['release_date']['date'] ?? null);
-
-        $stmt = $conn->prepare("
-        SELECT id
-        FROM jogo
-        WHERE steam_appid = :steam_appid
-        LIMIT 1
-    ");
-        $stmt->execute([':steam_appid' => $appid]);
-
-        $jogoId = $stmt->fetchColumn();
-
-        if (!$jogoId && $nome) {
-            $stmt = $conn->prepare("
-            SELECT id
-            FROM jogo
-            WHERE LOWER(nome) = LOWER(:nome)
-            LIMIT 1
-        ");
-            $stmt->execute([':nome' => $nome]);
-
-            $jogoId = $stmt->fetchColumn();
-        }
-
-        if ($jogoId) {
-            $stmt = $conn->prepare("
-            UPDATE jogo
-            SET
-                steam_appid = COALESCE(steam_appid, :steam_appid),
-                dt_publicacao = COALESCE(dt_publicacao, :dt_publicacao),
-                capa = COALESCE(capa, :capa)
-            WHERE id = :id
-        ");
-
-            $stmt->execute([
-                ':id' => $jogoId,
-                ':steam_appid' => $appid,
-                ':dt_publicacao' => $dtPublicacao,
-                ':capa' => $capa,
-            ]);
-
-            return (int) $jogoId;
-        }
-
-        $stmt = $conn->prepare("
-        INSERT INTO jogo (
-            steam_appid,
-            nome,
-            dt_publicacao,
-            capa
-        )
-        VALUES (
-            :steam_appid,
-            :nome,
-            :dt_publicacao,
-            :capa
-        )
-        RETURNING id
-    ");
-
-        $stmt->execute([
-            ':steam_appid' => $appid,
-            ':nome' => $nome,
-            ':dt_publicacao' => $dtPublicacao,
-            ':capa' => $capa,
+        $context = stream_context_create([
+            'http' => [
+                'timeout' => 30,
+                'ignore_errors' => true,
+                'header' => implode("\r\n", [
+                        'User-Agent: SketchlogSteamIntegration/1.0',
+                        'Accept: application/json, text/javascript, */*; q=0.01',
+                    ]) . "\r\n",
+            ],
         ]);
 
-        return (int) $stmt->fetchColumn();
-    }
+        $response = file_get_contents($url, false, $context);
+        $status = $http_response_header[0] ?? 'HTTP status desconhecido';
 
-    private function salvarGeneros(int $jogoId, array $generos): void
-    {
-        foreach ($generos as $genero) {
-            $nomeGenero = $genero['description'] ?? null;
-
-            if (!$nomeGenero) {
-                continue;
-            }
-
-            $generoId = $this->getOrCreate('genero', $nomeGenero);
-            $this->vincularJogoGenero($jogoId, $generoId);
-        }
-    }
-
-    private function salvarDesenvolvedores(int $jogoId, array $desenvolvedores): void
-    {
-        foreach ($desenvolvedores as $nomeDesenvolvedor) {
-            if (!$nomeDesenvolvedor) {
-                continue;
-            }
-
-            $desenvolvedorId = $this->getOrCreate('desenvolvedor', $nomeDesenvolvedor);
-            $this->vincularJogoDesenvolvedor($jogoId, $desenvolvedorId);
-        }
-    }
-
-    private function salvarDistribuidoras(int $jogoId, array $distribuidoras): void
-    {
-        foreach ($distribuidoras as $nomeDistribuidora) {
-            if (!$nomeDistribuidora) {
-                continue;
-            }
-
-            $distribuidoraId = $this->getOrCreate('distribuidora', $nomeDistribuidora);
-            $this->vincularJogoDistribuidora($jogoId, $distribuidoraId);
-        }
-    }
-
-    private function getOrCreate(string $tabela, string $nome): int
-    {
-        $conn = TTransaction::get();
-
-        $stmt = $conn->prepare("
-            INSERT INTO {$tabela} (nome)
-            VALUES (:nome)
-            ON CONFLICT (nome) DO UPDATE SET
-                nome = EXCLUDED.nome
-            RETURNING id
-        ");
-
-        $stmt->execute([
-            ':nome' => trim($nome),
-        ]);
-
-        return (int) $stmt->fetchColumn();
-    }
-
-    private function vincularJogoGenero(int $jogoId, int $generoId): void
-    {
-        $conn = TTransaction::get();
-
-        $stmt = $conn->prepare("
-            INSERT INTO jogo_generos (
-                jogo_id,
-                genero_id
-            )
-            VALUES (
-                :jogo_id,
-                :genero_id
-            )
-            ON CONFLICT (jogo_id, genero_id) DO NOTHING
-        ");
-
-        $stmt->execute([
-            ':jogo_id' => $jogoId,
-            ':genero_id' => $generoId,
-        ]);
-    }
-
-    private function vincularJogoDesenvolvedor(int $jogoId, int $desenvolvedorId): void
-    {
-        $conn = TTransaction::get();
-
-        $stmt = $conn->prepare("
-            INSERT INTO jogo_desenvolvedores (
-                jogo_id,
-                desenvolvedor_id
-            )
-            VALUES (
-                :jogo_id,
-                :desenvolvedor_id
-            )
-            ON CONFLICT (jogo_id, desenvolvedor_id) DO NOTHING
-        ");
-
-        $stmt->execute([
-            ':jogo_id' => $jogoId,
-            ':desenvolvedor_id' => $desenvolvedorId,
-        ]);
-    }
-
-    private function vincularJogoDistribuidora(int $jogoId, int $distribuidoraId): void
-    {
-        $conn = TTransaction::get();
-
-        $stmt = $conn->prepare("
-            INSERT INTO jogo_distribuidoras (
-                jogo_id,
-                distribuidora_id
-            )
-            VALUES (
-                :jogo_id,
-                :distribuidora_id
-            )
-            ON CONFLICT (jogo_id, distribuidora_id) DO NOTHING
-        ");
-
-        $stmt->execute([
-            ':jogo_id' => $jogoId,
-            ':distribuidora_id' => $distribuidoraId,
-        ]);
-    }
-
-    private function formatarDataSteam(?string $data): ?string
-    {
-        if (!$data || strtolower($data) === 'coming soon') {
-            return null;
+        if ($response === false) {
+            throw new RuntimeException("Falha ao consultar a Steam. Status: {$status}.");
         }
 
-        $timestamp = strtotime($data);
+        preg_match('/\s(\d{3})(?:\s|$)/', $status, $matches);
+        $statusCode = (int) ($matches[1] ?? 0);
 
-        if (!$timestamp) {
-            return null;
+        if ($statusCode !== 200) {
+            throw new RuntimeException(
+                "A Steam respondeu com {$status}. Resposta: " . substr($response, 0, 300)
+            );
         }
 
-        return date('Y-m-d', $timestamp);
+        $json = json_decode($response, true);
+
+        if (!is_array($json)) {
+            throw new RuntimeException(
+                'A Steam nao retornou um JSON valido: ' . substr($response, 0, 300)
+            );
+        }
+
+        return $json;
     }
 
     private function getJson(string $url): array
@@ -432,42 +390,40 @@ class SteamGameImporterService
                 'timeout' => 30,
                 'ignore_errors' => true,
                 'header' => implode("\r\n", [
-                        'User-Agent: Mozilla/5.0',
+                        'User-Agent: SketchlogSteamIntegration/1.0',
                         'Accept: application/json, text/javascript, */*; q=0.01',
                     ]) . "\r\n",
             ],
         ]);
 
         $response = file_get_contents($url, false, $context);
-
         $status = $http_response_header[0] ?? 'HTTP status desconhecido';
 
         if ($response === false) {
-            throw new Exception("Falha ao buscar URL. Status: {$status}. URL: {$url}");
+            throw new RuntimeException(
+                "Falha ao consultar a Steam. Status: {$status}."
+            );
         }
 
-        if (!str_contains($status, '200')) {
-            throw new Exception("Status: {$status}. Resposta: " . substr($response, 0, 300));
+        preg_match('/\s(\d{3})(?:\s|$)/', $status, $matches);
+        $statusCode = (int) ($matches[1] ?? 0);
+
+        if ($statusCode !== 200) {
+            throw new RuntimeException(
+                "A Steam respondeu com {$status}. Resposta: " .
+                substr($response, 0, 300)
+            );
         }
 
         $json = json_decode($response, true);
 
         if (!is_array($json)) {
-            throw new Exception("Resposta não é JSON válido: " . substr($response, 0, 300));
+            throw new RuntimeException(
+                'A Steam não retornou um JSON válido: ' .
+                substr($response, 0, 300)
+            );
         }
 
         return $json;
-    }
-
-    public function salvarJogoPublico(int $appid, array $details): int
-    {
-        return $this->salvarJogo($appid, $details);
-    }
-
-    public function salvarRelacionamentosPublico(int $jogoId, array $details): void
-    {
-        $this->salvarGeneros($jogoId, $details['genres'] ?? []);
-        $this->salvarDesenvolvedores($jogoId, $details['developers'] ?? []);
-        $this->salvarDistribuidoras($jogoId, $details['publishers'] ?? []);
     }
 }

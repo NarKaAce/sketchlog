@@ -23,7 +23,6 @@ class Log extends TRecord
         parent::addAttribute('dificuldade_id');
         parent::addAttribute('console_id');
         parent::addAttribute('conquistas_feitas');
-        parent::addAttribute('conquistas_totais');
         parent::addAttribute('log_goty');
         parent::addAttribute('usuario_id');
         parent::addAttribute('review');

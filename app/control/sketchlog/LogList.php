@@ -115,9 +115,9 @@ class LogList extends TPage
         $column_conquista->setTransformer(function ($value, $object, $row, $cell = null, $last_row = null) {
             if($value)
             {
-                $log = Log::where('id', '=', $value)->first();
+                $jogo = Jogo::where('id', '=', $object->jogo_id)->first();
 
-                return "$log->conquistas_feitas".' de '."$log->conquistas_totais";
+                return "$object->conquistas_feitas".' de '."$jogo->conquistas_totais";
             }
         });
 

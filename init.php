@@ -13,6 +13,16 @@ Adianti\Core\AdiantiCoreLoader::loadClassMap();
 $loader = require 'vendor/autoload.php';
 $loader->register();
 
+// carrega o arquivo .env e substitui valores antigos do ambiente local
+$dotenv = Dotenv\Dotenv::createMutable(__DIR__);
+$dotenv->safeLoad();
+
+// verifica se as configurações obrigatórias existem
+$dotenv->required([
+    'STEAM_API_KEY',
+    'STEAM_ID64',
+])->notEmpty();
+
 // apply app configurations
 AdiantiApplicationConfig::start();
 

@@ -14,17 +14,17 @@ class JpgRenderer extends PngRenderer
             // Colored background
             $backgroundColor = new ImagickPixel('rgb(' . implode(',', $this->backgroundColor) . ')');
         } else {
-            // Use transparent background
-            $backgroundColor = new ImagickPixel('none');
+            // Use white background
+            $backgroundColor = new ImagickPixel('rgb(255,255,255)');
         }
         $image->newImage($width, $height, $backgroundColor, 'JPG');
 
         return $image;
     }
 
+    /** @param \GdImage $image */
     protected function generateGdImage($image): void
     {
         \imagejpeg($image);
-        \imagedestroy($image);
     }
 }

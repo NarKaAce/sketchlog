@@ -56,6 +56,10 @@ class JogoList extends TPage
         $btn_onshow = $this->form->addAction("Cadastrar", new TAction(['JogoForm', 'onShow']), 'fas:plus #69aa46');
         $this->btn_onshow = $btn_onshow;
 
+        $btn_onsincronizar = $this->form->addAction("Sincronizar", new TAction([$this, 'onSincronizar']), 'fab:steam #ffffff');
+        $this->btn_onsincronizar = $btn_onsincronizar;
+        $btn_onsincronizar->addStyleClass('btn-primary');
+
         // creates a Datagrid
         $this->datagrid = new TDataGrid;
         $this->datagrid->disableHtmlConversion();
@@ -341,6 +345,73 @@ class JogoList extends TPage
         }
 
         TDataGrid::replaceRowById(__CLASS__ . '_datagrid', $row->id, $row);
+    }
+
+    public static function onSincronizar($param)
+    {
+        try {
+            $steam = new SteamGameImporterService();
+
+            $jogos = $steam->getOwnedGames($_ENV['STEAM_ID64']?? $_SERVER['STEAM_ID64']?? '');
+
+            TSession::setValue('steam_jogos_sincronizacao', $jogos);
+
+            TSession::setValue('steam_sincronizacao_offset', 0);
+
+            self::onProcessarLote([]);
+        } catch (Throwable $e) {
+            new TMessage('error', $e->getMessage());
+        }
+    }
+
+    public static function onProcessarLote($param)
+    {
+        try {
+            $jogos = TSession::getValue('steam_jogos_sincronizacao') ?? [];
+
+            $offset = (int) (TSession::getValue('steam_sincronizacao_offset') ?? 0);
+
+            if (empty($jogos)) {
+                throw new RuntimeException('Não existe uma sincronização em andamento.');
+            }
+
+            $steam = new SteamGameImporterService();
+
+            $resultado = $steam->sincronizarLote($jogos, $offset, 10);
+
+            TSession::setValue('steam_sincronizacao_offset', $resultado['proximo_offset']);
+
+            if ($resultado['concluido']) {
+                TSession::delValue('steam_jogos_sincronizacao');
+
+                TSession::delValue('steam_sincronizacao_offset');
+
+                new TMessage(
+                    'info',
+                    'Sincronização concluída.',
+                    new TAction(['JogoList', 'onReload'])
+                );
+
+                return;
+            }
+
+            $proximoOffset = $resultado['proximo_offset'];
+
+            TScript::create("
+                setTimeout(function () {
+                    __adianti_ajax_exec(
+                        'class=JogoList" .
+                    "&method=onProcessarLote" .
+                    "&offset={$proximoOffset}'
+                    );
+                }, 300);
+            ");
+        } catch (Throwable $e) {
+            TSession::delValue('steam_jogos_sincronizacao');
+            TSession::delValue('steam_sincronizacao_offset');
+
+            new TMessage('error', $e->getMessage());
+        }
     }
 
 }
